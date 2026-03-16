@@ -1,0 +1,12 @@
+ungrouped:
+  hosts:
+    localhost:
+
+      user:
+        username: jsatt
+        group: jsatt
+        home_dir: /home/jsatt
+        dotfiles_repo: git@github.com:jsatt/dotfiles.git
+
+      lang_versions:
+        nodejs: 24

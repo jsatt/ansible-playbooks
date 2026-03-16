@@ -1,0 +1,96 @@
+- name: Remove cruft
+  ansible.builtin.apt:
+    state: absent
+    autoremove: true
+    autoclean: true
+    package:
+      - akregator
+      - bluedevil
+      - dragonplayer
+      - kaddressbook
+      - kamoso
+      - kexi
+      - kmail
+      - knotes
+      - kontact
+      - korganizer
+      - kpat
+      - kppp
+      - krita
+      - krita-data
+      - ktorrent
+      - kubuntu-firefox-installer
+      - muon
+      - muon-installer
+      - muon-notifier
+      - muon-updater
+      - quassel
+      - rdesktop
+      - thunderbird
+
+- name: Install system utils
+  ansible.builtin.apt:
+    package:
+      - build-essential
+      - cmake
+      - curl
+      - fd-find
+      - htop
+      - net-tools
+      - python3-apt
+      - ripgrep
+      - software-properties-common
+      - screen
+      - ssh
+      - tmux
+      - zsh
+      - mesa-va-drivers
+
+- name: Install Flatpak
+  block:
+    - name: Install Flatpak system packages
+      ansible.builtin.apt:
+        package:
+          - flatpak
+          - kde-config-flatpak
+
+    - name: Add Flathub Repository
+      community.general.flatpak_remote:
+        name: flathub
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+
+- name: Setup git
+  block:
+    - name: Check for git gpg key
+      ansible.builtin.stat:
+        path: /etc/apt/trusted.gpg.d/git.gpg
+      register: has_git_key
+      ignore_errors: true
+    - when: has_git_key.stat.exists == False
+      block:
+        - name: Create temporary directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: -git
+          register: temp_dir
+        - name: Import git signing key
+          ansible.builtin.get_url:
+            url: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf911ab184317630c59970973e363c90f8f1b6217
+            dest: "{{ temp_dir.path }}/git.asc"
+        - name: Convert git signing key
+          ansible.builtin.command:
+            cmd: "gpg --dearmor -o /etc/apt/trusted.gpg.d/git.gpg {{ temp_dir.path }}/git.asc"
+            creates: /etc/apt/trusted.gpg.d/git.gpg
+    - name: Add git apt repository
+      ansible.builtin.deb822_repository:
+        name: git
+        types: deb
+        uris: https://ppa.launchpadcontent.net/git-core/ppa/ubuntu
+        components:
+          - main
+        suites: '{{ ansible_distribution_release }}'
+        signed_by: /etc/apt/trusted.gpg.d/git.gpg
+    - name: Install git
+      ansible.builtin.apt:
+        package:
+          - git

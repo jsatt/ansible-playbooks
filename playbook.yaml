@@ -1,0 +1,34 @@
+- name: Base system
+  hosts: all
+  become: true
+  connection: local
+  tasks:
+    - name: Get arch
+      shell: dpkg --print-architecture
+      register: deb_arch
+
+    - name: Setup base system
+      ansible.builtin.include_tasks: system.yaml
+
+    - name: "Setup User - {{ user.username }}"
+      ansible.builtin.include_tasks: users.yaml
+      when: user
+      vars:
+        username: "{{ user.username }}"
+        home_dir: "{{ user.home_dir }}"
+        group: "{{ user.group }}"
+        dotfiles_repo: "{{ user.dotfiles_repo | default('') }}"
+
+    - name: Setup desktop applications
+      ansible.builtin.include_tasks: desktop.yaml
+      vars:
+        owner: "{{ user.username }}"
+        owner_group: "{{ user.group }}"
+        home_dir: "{{ user.home_dir }}"
+        bin_dir: "{{ user.home_dir }}/bin"
+
+    - name: Setup Developement applications
+      ansible.builtin.include_tasks: dev.yaml
+      vars:
+        docker_user: "{{ user.username }}"
+        node_version: "{{ lang_versions.nodejs }}"

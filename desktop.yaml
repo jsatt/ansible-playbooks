@@ -1,0 +1,166 @@
+- name: Install Desktop Apps
+  ansible.builtin.apt:
+    package:
+      - gimp
+      - kdiff3
+      - network-manager-openvpn
+      - okular
+      - qps
+      - synaptic
+      - skanpage
+      - transmission
+
+- name: Install Media Apps
+  ansible.builtin.apt:
+    package:
+      - clementine
+      - easytag
+      - vlc
+
+- name: Setup Wezterm
+  block:
+    - name: Install Wezterm
+      community.general.flatpak:
+        name: org.wezfurlong.wezterm
+        state: latest
+
+- name: Install Steam
+  ansible.builtin.apt:
+    package:
+      - steam
+      - steam-devices
+
+- name: Install Prusa Slicer
+  block:
+    - name: Install Prusa Slicer
+      community.general.flatpak:
+        name: com.prusa3d.PrusaSlicer
+        state: latest
+
+- name: Install VeraCrypt
+  block:
+    - name: Check veracrypt install
+      ansible.builtin.command: dpkg -s veracrypt
+      ignore_errors: true
+      register: veracrypt
+
+    - name: Install veracrypt
+      ansible.builtin.apt:
+        deb: https://launchpad.net/veracrypt/trunk/1.26.24/+download/veracrypt-1.26.24-Ubuntu-24.04-amd64.deb
+      when: veracrypt.failed == True
+
+- name: Install Synology Drive
+  block:
+    - name: Check synology-drive install
+      ansible.builtin.command: dpkg -s veracrypt
+      ignore_errors: true
+      register: synology_drive
+    - name: Install synology-drive
+      ansible.builtin.apt:
+        deb: https://global.synologydownload.com/download/Utility/SynologyDriveClient/4.0.2-17889/Ubuntu/Installer/synology-drive-client-17889.x86_64.deb
+      when: synology_drive.failed == True
+
+- name: Install Neovim
+  become: true
+  become_user: "{{ owner }}"
+  block:
+    - name: Create Neovim bin dir
+      ansible.builtin.file:
+        path: "{{ bin_dir }}/nvim_"
+        state: directory
+    - name: Unpack Neovim
+      ansible.builtin.unarchive:
+        src: https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+        dest: "{{ bin_dir }}/nvim_/"
+        extra_opts:
+          - '--strip-components=1'
+        remote_src: true
+        creates: "{{ bin_dir }}/nvim_/bin/nvim"
+    - name: Create Neovim symlink
+      ansible.builtin.file:
+        dest: "{{ bin_dir }}/nvim"
+        src: nvim_/bin/nvim
+        state: link
+
+- name: Install Firefox Dev Edition
+  become: true
+  become_user: "{{ owner }}"
+  block:
+    - name: Create Firefox destionation
+      ansible.builtin.file:
+        path: "{{ bin_dir }}/firefox-devedition"
+        state: directory
+    - name: Download Firefox
+      ansible.builtin.unarchive:
+        src: https://download.mozilla.org/?product=firefox-devedition-latest-ssl&os=linux64&lang=en-US
+        dest: "{{ bin_dir }}/firefox-devedition"
+        extra_opts:
+          - '--strip-components=1'
+        remote_src: true
+        creates: "{{ bin_dir }}/firefox-devedition/firefox"
+    - name: Setup symlink
+      ansible.builtin.file:
+        src: "{{ bin_dir }}/firefox-devedition/firefox"
+        dest: "{{ bin_dir }}/firefox"
+        state: link
+        follow: false
+
+- name: Install AnonymousPro Font
+  become: true
+  become_user: "{{ owner }}"
+  block:
+    - name: Check AnonymousPro font
+      ansible.builtin.stat:
+        path: "{{ home_dir }}/.fonts/AnonymousPro"
+      register: anon_pro
+    - when: anon_pro.stat.exists == False
+      block:
+        - name: Create AnonymousPro temp directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: -AnonymousPro
+          register: temp_dir
+        - name: Download AnonymousPro
+          ansible.builtin.unarchive:
+            src: "https://www.marksimonson.com/assets/content/fonts/AnonymousPro-1_002.zip"
+            remote_src: true
+            dest: "{{ temp_dir.path }}"
+            list_files: true
+          register: file_list
+        - name: Install AnonymousPro
+          ansible.builtin.copy:
+            src: "{{ temp_dir.path }}/{{ item }}"
+            dest: "{{ home_dir }}/.fonts/AnonymousPro/"
+            remote_src: true
+          with_items: "{{ file_list.files }}"
+          when: item is regex(".*.ttf")
+
+- name: Install AnonymousPro-Nerdfont
+  become: true
+  become_user: "{{ owner }}"
+  block:
+    - name: Check AnonymousPro-Nerdfont font
+      ansible.builtin.stat:
+        path: "{{ home_dir }}/.fonts/AnonymousPro-Nerdfont"
+      register: anon_pro_nerd
+    - when: anon_pro_nerd.stat.exists == False
+      block:
+        - name: Create AnonymousPro-Nerdfont temp directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: -nerdfont
+          register: temp_dir
+        - name: Download AnonymousPro-Nerdfont
+          ansible.builtin.unarchive:
+            src: "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/AnonymousPro.zip"
+            remote_src: true
+            dest: "{{ temp_dir.path }}"
+            list_files: true
+          register: file_list
+        - name: Install AnonymousPro-Nerdfont
+          ansible.builtin.copy:
+            src: "{{ temp_dir.path }}/{{ item }}"
+            dest: "{{ home_dir }}/.fonts/AnonymousPro-Nerdfont/"
+            remote_src: true
+          with_items: "{{ file_list.files }}"
+          when: item is regex(".*.ttf")

@@ -164,3 +164,27 @@
             remote_src: true
           with_items: "{{ file_list.files }}"
           when: item is regex(".*.ttf")
+
+- name: Install hiresTI
+  block:
+    - name: Check hirestTI installed
+      ansible.builtin.shell:
+        cmd: apt list --installed | grep hiresti
+      ignore_errors: true
+      register: hiresti_installed
+    - name: Get latest hiresTI version
+      ansible.builtin.uri:
+        url:  https://api.github.com/repos/yelanxin/hiresTI/releases/latest
+        method: GET
+        return_content: true
+        headers:
+          Accept: application/json
+          User-Agent: ansible-playbook
+      register: hiresti_details
+    - ansible.builtin.set_fact:
+        hiresti_version: "{{ hiresti_details['json']['tag_name'] | replace('v', '') }}"
+    - when: hiresti_installed.failed or hiresti_installed['stdout'].split(' ')[1] != hiresti_version
+      block:
+        - name: Install hiresTI
+          ansible.builtin.apt:
+            deb: https://github.com/yelanxin/hiresTI/releases/download/v{{ hiresti_version }}/hiresti_{{ hiresti_version }}_amd64.deb

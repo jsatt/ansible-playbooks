@@ -12,7 +12,7 @@
 
     - name: "Setup User - {{ user.username }}"
       ansible.builtin.include_tasks: users.yaml
-      when: user
+      when: user != None
       vars:
         username: "{{ user.username }}"
         home_dir: "{{ user.home_dir }}"

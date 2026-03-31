@@ -75,7 +75,7 @@
           - "{{ deb_arch.stdout }}"
         components:
           - stable
-        suites: "{{ ansible_distribution_release }}"
+        suites: "{{ ansible_facts['distribution_release'] }}"
         signed_by: /etc/apt/trusted.gpg.d/docker.gpg
     - name: Install Docker
       ansible.builtin.apt:

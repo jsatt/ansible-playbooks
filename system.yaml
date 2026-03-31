@@ -88,7 +88,7 @@
         uris: https://ppa.launchpadcontent.net/git-core/ppa/ubuntu
         components:
           - main
-        suites: '{{ ansible_distribution_release }}'
+        suites: '{{ ansible_facts["distribution_release"] }}'
         signed_by: /etc/apt/trusted.gpg.d/git.gpg
     - name: Install git
       ansible.builtin.apt:

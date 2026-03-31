@@ -188,3 +188,27 @@
         - name: Install hiresTI
           ansible.builtin.apt:
             deb: https://github.com/yelanxin/hiresTI/releases/download/v{{ hiresti_version }}/hiresti_{{ hiresti_version }}_amd64.deb
+- name: Install Tidal Hi-Fi
+  block:
+    - name: Check Tidal Hi-Fi installed
+      ansible.builtin.shell:
+        cmd: apt list --installed | grep tidal-hifi
+      ignore_errors: true
+      register: tidalhifi_installed
+    - name: Get latest Tidal Hi-Fi version
+      ansible.builtin.uri:
+        url:  https://api.github.com/repos/Mastermindzh/tidal-hifi/releases/latest
+        method: GET
+        return_content: true
+        headers:
+          Accept: application/json
+          User-Agent: ansible-playbook
+      register: tidalhifi_details
+    - ansible.builtin.set_fact:
+        tidalhifi_version_tag: "{{ tidalhifi_details['json']['tag_name'] }}"
+        tidalhifi_version_number: "{{ tidalhifi_details['json']['tag_name'] | split('-') | first}}"
+    - when: tidalhifi_installed.failed or tidalhifi_installed['stdout'].split(' ')[1] != tidalhifi_version_number
+      block:
+        - name: Install Tidal Hi-Fi
+          ansible.builtin.apt:
+            deb: https://github.com/Mastermindzh/tidal-hifi/releases/download/{{ tidalhifi_version_tag }}/tidal-hifi_{{ tidalhifi_version_number }}_amd64.deb
